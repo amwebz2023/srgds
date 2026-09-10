@@ -1,7 +1,15 @@
+import Link from "next/link";
+import { ArrowUpRight, Heart, Sparkles, UsersRound } from "lucide-react";
+import { SiteChrome } from "@/components/SiteChrome";
+
+const stats = [["01", "One connected network", "A home for every story, skill, and ambition."], ["02", "A future we shape", "Sharing opportunities and opening doors together."], ["03", "Pride in progress", "Celebrating the wins that make our community stronger."]];
+
 export default function Home() {
-  return (
-    <main>
-      <div>Hello world!</div>
-    </main>
-  );
+  return <SiteChrome active="home"><main>
+    <section className="hero"><div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /><div className="section-shell hero-inner"><div className="hero-copy"><span className="eyebrow">The SRGDS sonthangal community</span><h1 className="serif display-title">Connecting our community,<br /><em>building our future.</em></h1><p className="hero-lede">A platform to connect, register, and celebrate the people who make our community remarkable.</p><div className="hero-actions"><Link className="button button-primary" href="/registration">Register now <ArrowUpRight size={17} /></Link><Link className="button button-ghost" href="#about">Discover our story <span aria-hidden="true">↓</span></Link></div></div><div className="hero-visual" aria-label="Illustration of a connected community" role="img"><div className="visual-stamp">Together<br /><span>we grow</span></div><div className="visual-person person-a">✦</div><div className="visual-person person-b">●</div><div className="visual-person person-c">◆</div><div className="visual-line line-a" /><div className="visual-line line-b" /><div className="visual-line line-c" /><div className="visual-center"><UsersRound size={48} strokeWidth={1.2} /><span>Many paths.<br />One community.</span></div></div></div></section>
+    <section id="about" className="intro-section section-shell"><div className="intro-label"><span className="eyebrow">01 / About us</span><span className="rule" /></div><div className="intro-content"><h2 className="serif section-title">A stronger community starts with <em>one another.</em></h2><div><p className="large-copy">SRGDS sonthangal is a growing network built around a simple belief: when we know each other, we can lift each other higher.</p><Link className="text-link" href="/about">More about our community <ArrowUpRight size={16} /></Link></div></div></section>
+    <section className="stats-section"><div className="section-shell stats-grid">{stats.map(([number, title, text]) => <article className="stat" key={number}><span className="stat-number">{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+    <section className="values-section section-shell"><div className="values-heading"><span className="eyebrow">02 / What drives us</span><h2 className="serif section-title">A place to belong,<br /><em>a reason to contribute.</em></h2></div><div className="values-list"><div className="value-item"><Heart size={24} /><div><h3>People first</h3><p>Real connection is the beginning of meaningful change.</p></div></div><div className="value-item"><Sparkles size={24} /><div><h3>Celebrate progress</h3><p>Every achievement adds a new chapter to our shared story.</p></div></div></div></section>
+    <section className="cta-section section-shell"><div className="cta-box"><div><span className="eyebrow">03 / Your place in the story</span><h2 className="serif">Let’s make the<br /><em>next chapter</em> count.</h2></div><Link className="button button-dark" href="/registration">Join the community <ArrowUpRight size={18} /></Link></div></section>
+  </main></SiteChrome>;
 }
