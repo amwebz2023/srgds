@@ -40,7 +40,8 @@ export function LoginForm() {
         method: "POST",
       });
       if (!response.ok) {
-        throw new Error("Please Submit valid credentials");
+        const result = await response.json().catch(() => null);
+        throw new Error(response.status === 401 ? "Please Submit valid credentials" : result?.error || "Login is temporarily unavailable.");
       }
       router.push("/dashboard");
     } catch (error) {

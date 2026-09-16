@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { FieldValue } from "firebase-admin/firestore";
@@ -7,11 +7,11 @@ import { getFirestoreDb } from "@/lib/firebase-admin";
 const scrypt = promisify(scryptCallback);
 const sessionCookie = "srgds_admin_session";
 const sessionSecret = process.env.ADMIN_SESSION_SECRET || "srgds-development-session-secret";
-const bootstrapMobile = process.env.ADMIN_MOBILE || "9876543210";
+const bootstrapMobile = (process.env.ADMIN_MOBILE || "9876543210").replace(/\D/g, "");
 const bootstrapPassword = process.env.ADMIN_PASSWORD || "Test@123";
 
 function hashMobile(mobile: string) {
-  return createHmac("sha256", sessionSecret).update(mobile).digest("hex");
+  return createHash("sha256").update(mobile).digest("hex");
 }
 
 async function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
@@ -26,8 +26,8 @@ async function passwordMatches(password: string, hash: string, salt: string) {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
-function createSessionToken() {
-  const payload = `${hashMobile(bootstrapMobile)}.${Date.now()}`;
+function createSessionToken(mobile: string) {
+  const payload = `${hashMobile(mobile)}.${Date.now()}`;
   const signature = createHmac("sha256", sessionSecret).update(payload).digest("hex");
   return `${payload}.${signature}`;
 }
@@ -60,7 +60,7 @@ export async function authenticateAdmin(mobile: string, password: string) {
     if (!user?.passwordHash || !user.passwordSalt || !(await passwordMatches(password, user.passwordHash, user.passwordSalt))) return false;
   }
 
-  return createSessionToken();
+  return createSessionToken(normalizedMobile);
 }
 
 export async function hasAdminSession() {
