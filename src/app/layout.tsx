@@ -9,9 +9,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://srgds-sonthangal.example"),
-  title: { default: "SRGDS sonthangal | Connecting our community", template: "%s | SRGDS sonthangal" },
-  description: "A connected community platform for SRGDS sonthangal members to register, grow, and celebrate one another.",
-  openGraph: { title: "SRGDS sonthangal | Connecting our community", description: "Connecting our community, building our future.", type: "website", locale: "en_IN" },
+  title: { default: "SRGDS Alumni | Connecting our community", template: "%s | SRGDS Alumni" },
+  description: "A connected community platform for SRGDS Alumni members to register, grow, and celebrate one another.",
+  openGraph: { title: "SRGDS Alumni | Connecting our community", description: "Connecting our community, building our future.", type: "website", locale: "en_IN" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -110,6 +110,7 @@ export function RegistrationForm() {
   const [errors, setErrors] = useState<FormData>({});
   const [submitted, setSubmitted] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const update = (name: string, value: string) => {
     const normalized =
       name === "firstName" || name === "lastName"
@@ -169,13 +170,33 @@ export function RegistrationForm() {
       return;
     }
     setProcessing(true);
-    window.setTimeout(() => {
-      console.info("SRGDSsonthangal registration", data);
-      setData(initial);
-      setErrors({});
-      setProcessing(false);
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    setSubmitError("");
+    window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/registrations", {
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.error || "Registration could not be saved.");
+        }
+
+        setData(initial);
+        setErrors({});
+        setProcessing(false);
+        setSubmitted(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (error) {
+        setProcessing(false);
+        setSubmitError(
+          error instanceof Error
+            ? error.message
+            : "Registration could not be saved. Please try again.",
+        );
+      }
     }, 650);
   };
   const reset = () => {
@@ -189,7 +210,7 @@ export function RegistrationForm() {
         <CheckCircle2 size={48} />
         <h2 className="serif">Registration completed successfully.</h2>
         <p>
-          Thank you for registering with SRGDS sonthangal. We’re glad to have
+          Thank you for registering with SRGDS Alumni. We’re glad to have
           you with us.
         </p>
         <button className="button button-dark" onClick={reset}>
@@ -199,6 +220,7 @@ export function RegistrationForm() {
     );
   return (
     <form className="registration-form" onSubmit={submit} noValidate>
+      {submitError && <p className="field-error">{submitError}</p>}
       <FormSection number="01" title="Personal information">
         <div className="form-grid three">
           <Field
