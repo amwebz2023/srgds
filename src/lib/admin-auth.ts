@@ -48,7 +48,7 @@ export async function authenticateAdmin(email: string, password: string) {
     const firebaseMessage = errorResult?.error?.message;
     if (firebaseMessage === "INVALID_LOGIN_CREDENTIALS" || firebaseMessage === "EMAIL_NOT_FOUND" || firebaseMessage === "INVALID_PASSWORD") return false;
     if (firebaseMessage === "API_KEY_INVALID") throw new Error("FIREBASE_WEB_API_KEY is invalid or belongs to a different Firebase project.");
-    throw new Error(`Firebase Authentication request failed with status ${response.status}.`);
+    throw new Error(`Firebase Authentication rejected the request: ${firebaseMessage || `HTTP ${response.status}`}.`);
   }
 
   const result = await response.json() as { idToken?: string; email?: string };
