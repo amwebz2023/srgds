@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { authenticateAdmin, getSessionCookieName } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const { authenticateAdmin, getSessionCookieName } = await import("@/lib/admin-auth");
     const { email, password, rememberMe } = await request.json();
     if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       return NextResponse.json({ error: "Enter your email address and password." }, { status: 400 });
