@@ -34,7 +34,7 @@ export function isValidSessionToken(token: string | undefined) {
 }
 
 export async function authenticateAdmin(email: string, password: string) {
-  const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  const apiKey = process.env.FIREBASE_WEB_API_KEY?.replace(/^"|"$/g, "").trim();
   if (!apiKey) throw new Error("Missing FIREBASE_WEB_API_KEY. Add the Firebase Web API key to Vercel environment variables.");
 
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
@@ -58,7 +58,7 @@ export async function authenticateAdmin(email: string, password: string) {
 }
 
 export async function requestPasswordReset(email: string) {
-  const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  const apiKey = process.env.FIREBASE_WEB_API_KEY?.replace(/^"|"$/g, "").trim();
   if (!apiKey) throw new Error("Missing FIREBASE_WEB_API_KEY. Add the Firebase Web API key to Vercel environment variables.");
 
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
