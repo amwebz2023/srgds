@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { getFirestoreDb } from "@/lib/firebase-admin";
+import { getFirebaseAdminAuth } from "@/lib/firebase-admin";
 
 const sessionCookie = "srgds_admin_session";
 
@@ -44,15 +44,16 @@ export async function authenticateAdmin(email: string, password: string) {
   });
 
   if (!response.ok) {
-    if (response.status === 400) return false;
+    const errorResult = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    const firebaseMessage = errorResult?.error?.message;
+    if (firebaseMessage === "INVALID_LOGIN_CREDENTIALS" || firebaseMessage === "EMAIL_NOT_FOUND" || firebaseMessage === "INVALID_PASSWORD") return false;
+    if (firebaseMessage === "API_KEY_INVALID") throw new Error("FIREBASE_WEB_API_KEY is invalid or belongs to a different Firebase project.");
     throw new Error(`Firebase Authentication request failed with status ${response.status}.`);
   }
 
   const result = await response.json() as { idToken?: string; email?: string };
   if (!result.idToken) throw new Error("Firebase Authentication did not return an ID token.");
-  getFirestoreDb();
-  const { getAuth } = await import("firebase-admin/auth");
-  const decodedToken = await getAuth().verifyIdToken(result.idToken);
+  const decodedToken = await getFirebaseAdminAuth().verifyIdToken(result.idToken);
   return createSessionToken(decodedToken.email || result.email || email);
 }
 

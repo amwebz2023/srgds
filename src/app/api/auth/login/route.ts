@@ -22,9 +22,14 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Admin login failed", error);
-    const message = error instanceof Error && error.message.includes("ADMIN_SESSION_SECRET")
+    const errorMessage = error instanceof Error ? error.message : "";
+    const message = errorMessage.includes("ADMIN_SESSION_SECRET")
       ? "ADMIN_SESSION_SECRET is missing from the Vercel Production environment."
-      : "Firebase login configuration is unavailable. Check the Vercel Production environment variables.";
+      : errorMessage.includes("FIREBASE_WEB_API_KEY")
+        ? errorMessage
+        : errorMessage.includes("Firebase credentials")
+          ? "Firebase Admin credentials are invalid or incomplete in the Vercel Production environment."
+          : "Firebase login configuration is unavailable. Check the Vercel Production environment variables.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
