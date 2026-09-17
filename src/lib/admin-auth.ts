@@ -3,21 +3,33 @@ import { cookies } from "next/headers";
 import { getFirestoreDb } from "@/lib/firebase-admin";
 
 const sessionCookie = "srgds_admin_session";
-const sessionSecret = process.env.ADMIN_SESSION_SECRET || "srgds-development-session-secret";
+
+function getSessionSecret() {
+  const configuredSecret = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (configuredSecret) return configuredSecret;
+  if (process.env.NODE_ENV !== "production") return "srgds-development-session-secret";
+  throw new Error("Missing ADMIN_SESSION_SECRET. Add a random secret to the Vercel Production environment.");
+}
 
 function createSessionToken(email: string) {
   const emailHash = createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
   const payload = `${emailHash}.${Date.now()}`;
-  const signature = createHmac("sha256", sessionSecret).update(payload).digest("hex");
+  const signature = createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
   return `${payload}.${signature}`;
 }
 
 export function isValidSessionToken(token: string | undefined) {
   if (!token) return false;
   const [mobileHash, timestamp, signature] = token.split(".");
-  if (!mobileHash || !timestamp || !signature || Date.now() - Number(timestamp) > 8 * 60 * 60 * 1000) return false;
+  const issuedAt = Number(timestamp);
+  if (!mobileHash || !timestamp || !signature || !Number.isFinite(issuedAt) || issuedAt > Date.now() || Date.now() - issuedAt > 8 * 60 * 60 * 1000) return false;
   const payload = `${mobileHash}.${timestamp}`;
-  const expected = createHmac("sha256", sessionSecret).update(payload).digest("hex");
+  let expected: string;
+  try {
+    expected = createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
+  } catch {
+    return false;
+  }
   return expected.length === signature.length && timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
@@ -42,6 +54,24 @@ export async function authenticateAdmin(email: string, password: string) {
   const { getAuth } = await import("firebase-admin/auth");
   const decodedToken = await getAuth().verifyIdToken(result.idToken);
   return createSessionToken(decodedToken.email || result.email || email);
+}
+
+export async function requestPasswordReset(email: string) {
+  const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  if (!apiKey) throw new Error("Missing FIREBASE_WEB_API_KEY. Add the Firebase Web API key to Vercel environment variables.");
+
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`, {
+    body: JSON.stringify({ requestType: "PASSWORD_RESET", email: email.trim().toLowerCase() }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    if (response.status === 400) return false;
+    throw new Error(`Firebase password reset request failed with status ${response.status}.`);
+  }
+
+  return true;
 }
 
 export async function hasAdminSession() {

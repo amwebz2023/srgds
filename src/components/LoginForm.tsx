@@ -11,6 +11,8 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetProcessing, setResetProcessing] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -18,6 +20,29 @@ export function LoginForm() {
     const timeout = window.setTimeout(() => setLoginError(""), 3000);
     return () => window.clearTimeout(timeout);
   }, [loginError]);
+
+  const resetPassword = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMobileError("Enter a valid email address first.");
+      return;
+    }
+    setResetProcessing(true);
+    setResetMessage("");
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Password reset is temporarily unavailable.");
+      setResetMessage("If that email is registered, a reset link is on its way.");
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "Password reset failed. Please try again.");
+    } finally {
+      setResetProcessing(false);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,7 +60,7 @@ export function LoginForm() {
     setProcessing(true);
     try {
       const response = await fetch("/api/auth/login", {
-        body: JSON.stringify({ email, password: form.password.value }),
+        body: JSON.stringify({ email, password: form.password.value, rememberMe }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -82,9 +107,10 @@ export function LoginForm() {
           </button>
         </div>
       </div>
+      {resetMessage && <p className="login-success" role="status">{resetMessage}</p>}
       <div className="login-options">
         <label className="remember-me"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /> <span>Remember me</span></label>
-        <button className="forgot-password" type="button">Forgot password?</button>
+        <button className="forgot-password" type="button" onClick={resetPassword} disabled={resetProcessing}>{resetProcessing ? "Sending..." : "Forgot password?"}</button>
       </div>
       <button className="button button-primary login-submit" type="submit" disabled={processing}>{processing ? "Signing in..." : "Login"} {!processing && <ArrowUpRight size={17} />}</button>
       <p className="login-note">New to the network? <a href="/registration">Register with us</a></p>
