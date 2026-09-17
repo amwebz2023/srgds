@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Admin login failed", error);
-    return NextResponse.json({ error: "Firebase login configuration is unavailable. Check the Vercel Production environment variables." }, { status: 500 });
+    const message = error instanceof Error && error.message.includes("ADMIN_SESSION_SECRET")
+      ? "ADMIN_SESSION_SECRET is missing from the Vercel Production environment."
+      : "Firebase login configuration is unavailable. Check the Vercel Production environment variables.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
