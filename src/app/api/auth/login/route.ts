@@ -3,12 +3,12 @@ import { authenticateAdmin, getSessionCookieName } from "@/lib/admin-auth";
 
 export async function POST(request: Request) {
   try {
-    const { mobile, password } = await request.json();
-    if (typeof mobile !== "string" || typeof password !== "string") {
-      return NextResponse.json({ error: "Enter your mobile number and password." }, { status: 400 });
+    const { email, password } = await request.json();
+    if (typeof email !== "string" || typeof password !== "string") {
+      return NextResponse.json({ error: "Enter your email address and password." }, { status: 400 });
     }
 
-    const token = await authenticateAdmin(mobile, password);
+    const token = await authenticateAdmin(email, password);
     if (!token) return NextResponse.json({ error: "Invalid mobile number or password." }, { status: 401 });
 
     const response = NextResponse.json({ ok: true });

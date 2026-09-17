@@ -8,7 +8,7 @@ export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [loginError, setLoginError] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -22,12 +22,12 @@ export function LoginForm() {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
-    if (!mobile) {
-      setMobileError("Please enter your mobile number.");
+    if (!email) {
+      setMobileError("Please enter your email address.");
       return;
     }
-    if (!/^\d+$/.test(mobile)) {
-      setMobileError("Mobile number must contain numbers only.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMobileError("Please enter a valid email address.");
       return;
     }
     setMobileError("");
@@ -35,7 +35,7 @@ export function LoginForm() {
     setProcessing(true);
     try {
       const response = await fetch("/api/auth/login", {
-        body: JSON.stringify({ mobile, password: form.password.value }),
+        body: JSON.stringify({ email, password: form.password.value }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -46,7 +46,7 @@ export function LoginForm() {
       router.push("/dashboard");
     } catch (error) {
       setProcessing(false);
-      setMobile("");
+      setEmail("");
       form.password.value = "";
       setLoginError(error instanceof Error ? error.message : "Login failed. Please try again.");
     }
@@ -65,10 +65,10 @@ export function LoginForm() {
       </div>
       <p className="login-form-intro">Sign in to stay connected with the people and opportunities in our community.</p>
       <div className="login-field">
-        <label htmlFor="mobile">Mobile number</label>
+        <label htmlFor="email">Email address</label>
         <div className="login-input-wrap">
           <Smartphone size={18} aria-hidden="true" />
-          <input id="mobile" name="mobile" type="tel" inputMode="numeric" autoComplete="tel" placeholder="Enter your mobile number" value={mobile} maxLength={10} onChange={(event) => { setMobile(event.target.value.replace(/\D/g, "").slice(0, 10)); setMobileError(""); }} pattern="[0-9]+" aria-invalid={!!mobileError} aria-describedby={mobileError ? "mobile-error" : undefined} required />
+          <input id="email" name="email" type="email" autoComplete="username" placeholder="Enter your email address" value={email} onChange={(event) => { setEmail(event.target.value.toLowerCase()); setMobileError(""); }} aria-invalid={!!mobileError} aria-describedby={mobileError ? "mobile-error" : undefined} required />
         </div>
         {mobileError && <span className="field-error" id="mobile-error">{mobileError}</span>}
       </div>

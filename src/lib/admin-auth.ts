@@ -1,33 +1,13 @@
-import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { FieldValue } from "firebase-admin/firestore";
 import { getFirestoreDb } from "@/lib/firebase-admin";
 
-const scrypt = promisify(scryptCallback);
 const sessionCookie = "srgds_admin_session";
 const sessionSecret = process.env.ADMIN_SESSION_SECRET || "srgds-development-session-secret";
-const bootstrapMobile = (process.env.ADMIN_MOBILE || "9876543210").replace(/\D/g, "");
-const bootstrapPassword = process.env.ADMIN_PASSWORD || "Test@123";
 
-function hashMobile(mobile: string) {
-  return createHash("sha256").update(mobile).digest("hex");
-}
-
-async function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
-  return { hash: derivedKey.toString("hex"), salt };
-}
-
-async function passwordMatches(password: string, hash: string, salt: string) {
-  const candidate = await hashPassword(password, salt);
-  const expected = Buffer.from(hash, "hex");
-  const actual = Buffer.from(candidate.hash, "hex");
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
-}
-
-function createSessionToken(mobile: string) {
-  const payload = `${hashMobile(mobile)}.${Date.now()}`;
+function createSessionToken(email: string) {
+  const emailHash = createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+  const payload = `${emailHash}.${Date.now()}`;
   const signature = createHmac("sha256", sessionSecret).update(payload).digest("hex");
   return `${payload}.${signature}`;
 }
@@ -41,26 +21,27 @@ export function isValidSessionToken(token: string | undefined) {
   return expected.length === signature.length && timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
-export async function authenticateAdmin(mobile: string, password: string) {
-  const normalizedMobile = mobile.replace(/\D/g, "");
-  const userRef = getFirestoreDb().collection("loginuser").doc(hashMobile(normalizedMobile));
-  const userSnapshot = await userRef.get();
+export async function authenticateAdmin(email: string, password: string) {
+  const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  if (!apiKey) throw new Error("Missing FIREBASE_WEB_API_KEY. Add the Firebase Web API key to Vercel environment variables.");
 
-  if (!userSnapshot.exists) {
-    if (normalizedMobile !== bootstrapMobile || password !== bootstrapPassword) return false;
-    const passwordData = await hashPassword(password);
-    await userRef.set({
-      mobileHash: hashMobile(normalizedMobile),
-      passwordHash: passwordData.hash,
-      passwordSalt: passwordData.salt,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-  } else {
-    const user = userSnapshot.data();
-    if (!user?.passwordHash || !user.passwordSalt || !(await passwordMatches(password, user.passwordHash, user.passwordSalt))) return false;
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password, returnSecureToken: true }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    if (response.status === 400) return false;
+    throw new Error(`Firebase Authentication request failed with status ${response.status}.`);
   }
 
-  return createSessionToken(normalizedMobile);
+  const result = await response.json() as { idToken?: string; email?: string };
+  if (!result.idToken) throw new Error("Firebase Authentication did not return an ID token.");
+  getFirestoreDb();
+  const { getAuth } = await import("firebase-admin/auth");
+  const decodedToken = await getAuth().verifyIdToken(result.idToken);
+  return createSessionToken(decodedToken.email || result.email || email);
 }
 
 export async function hasAdminSession() {
