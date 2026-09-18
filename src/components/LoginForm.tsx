@@ -2,6 +2,8 @@
 
 import { ArrowUpRight, Eye, EyeOff, LockKeyhole, Smartphone } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase-client";
 import { FormEvent, useEffect, useState } from "react";
 
 export function LoginForm() {
@@ -29,13 +31,7 @@ export function LoginForm() {
     setResetProcessing(true);
     setResetMessage("");
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        body: JSON.stringify({ email }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error || "Password reset is temporarily unavailable.");
+      await sendPasswordResetEmail(firebaseAuth, email);
       setResetMessage("If that email is registered, a reset link is on its way.");
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Password reset failed. Please try again.");
@@ -59,20 +55,7 @@ export function LoginForm() {
     setLoginError("");
     setProcessing(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        body: JSON.stringify({ email, password: form.password.value, rememberMe }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
-      if (!response.ok) {
-        const responseText = await response.text();
-        let result: { error?: string } | null = null;
-        try {
-          result = JSON.parse(responseText) as { error?: string };
-        } catch {
-        }
-        throw new Error(response.status === 401 ? "Please submit valid credentials." : result?.error || `Login failed (${response.status}). Please try again.`);
-      }
+      await signInWithEmailAndPassword(firebaseAuth, email, form.password.value);
       router.push("/dashboard");
     } catch (error) {
       setProcessing(false);

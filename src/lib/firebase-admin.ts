@@ -2,25 +2,36 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-function getFirebaseAdminApp() {
-  const projectId = process.env.FIREBASE_PROJECT_ID?.replace(/^"|"$/g, "").trim();
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.replace(/^"|"$/g, "").trim();
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY
-    ?.replace(/^"|"$/g, "")
+function readEnvironmentValue(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) return "";
+  if (value.startsWith("\"") && value.endsWith("\"")) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+export function getFirebaseEnvironment() {
+  const projectId = readEnvironmentValue("FIREBASE_PROJECT_ID");
+  const clientEmail = readEnvironmentValue("FIREBASE_CLIENT_EMAIL");
+  const privateKey = readEnvironmentValue("FIREBASE_PRIVATE_KEY")
     .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "")
     .replace(/\r/g, "")
     .trim();
 
-  if (
-    !projectId ||
-    !clientEmail ||
-    !privateKey ||
-    privateKey.includes("REPLACE_WITH")
-  ) {
-    throw new Error(
-      "Missing Firebase credentials. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and a rotated FIREBASE_PRIVATE_KEY.",
-    );
+  if (!projectId) throw new Error("Missing FIREBASE_PROJECT_ID in the Vercel Production environment.");
+  if (!clientEmail) throw new Error("Missing FIREBASE_CLIENT_EMAIL in the Vercel Production environment.");
+  if (!privateKey) throw new Error("Missing FIREBASE_PRIVATE_KEY in the Vercel Production environment.");
+  if (!privateKey.startsWith("-----BEGIN PRIVATE KEY-----") || !privateKey.includes("-----END PRIVATE KEY-----")) {
+    throw new Error("FIREBASE_PRIVATE_KEY is not a valid PEM private key. Paste the complete key with \\n line breaks.");
   }
+
+  return { projectId, clientEmail, privateKey };
+}
+
+function getFirebaseAdminApp() {
+  const { projectId, clientEmail, privateKey } = getFirebaseEnvironment();
 
   return (
     getApps()[0] ??

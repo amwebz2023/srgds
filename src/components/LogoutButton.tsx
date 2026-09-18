@@ -2,7 +2,9 @@
 
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 import { useState } from "react";
+import { firebaseAuth } from "@/lib/firebase-client";
 
 export function LogoutButton({ onLoggedOut, nav = false }: { onLoggedOut?: () => void; nav?: boolean }) {
   const router = useRouter();
@@ -10,7 +12,7 @@ export function LogoutButton({ onLoggedOut, nav = false }: { onLoggedOut?: () =>
 
   const logout = async () => {
     setProcessing(true);
-    await fetch("/api/auth/logout", { method: "POST" });
+    await signOut(firebaseAuth);
     onLoggedOut?.();
     router.replace("/login");
     router.refresh();
