@@ -44,11 +44,18 @@ export function LoginForm() {
     event.preventDefault();
     const form = event.currentTarget;
     if (!email) {
-      setMobileError("Please enter your email address.");
+      setMobileError("");
+      setLoginError("Please Enter Mail id");
+      return;
+    }
+    if (!form.password.value) {
+      setMobileError("");
+      setLoginError("Please Enter Password");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMobileError("Please enter a valid email address.");
+      setMobileError("");
+      setLoginError("Please Enter Valid Mail Id");
       return;
     }
     setMobileError("");
@@ -61,14 +68,15 @@ export function LoginForm() {
       setProcessing(false);
       setEmail("");
       form.password.value = "";
-      setLoginError(error instanceof Error ? error.message : "Login failed. Please try again.");
+      const errorCode = typeof error === "object" && error !== null && "code" in error ? error.code : "";
+      setLoginError(errorCode === "auth/invalid-credential" ? "Invalid credentials. Please enter correct credentials" : error instanceof Error ? error.message : "Login failed. Please try again.");
     }
   };
 
   return (
     <>
       {loginError && <div className="login-error-popup" role="alert" aria-live="assertive">{loginError}</div>}
-      <form className="login-form" onSubmit={submit}>
+      <form className="login-form" onSubmit={submit} noValidate>
       <div className="login-form-heading">
         <span className="login-form-icon" aria-hidden="true"><LockKeyhole size={21} /></span>
         <div>
